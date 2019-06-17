@@ -1,20 +1,32 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 # CTensor[alpha][alpha'][i][j]: correlation between position alpha of channel i and position alpha' of channel j
 # CTensor generated from Big correlation 2D matrix where channel and input size are merged  
 # layer index starts from 0 which correponds to the input layer
+"""
+# Net work feedward steps:
+#   1. Initialize C tensor and mean activations by constructor
+#   2. Extract the dimensionality list of current layer including block matrix and Big Matrix
+#   3. Calculate Delta tensor
+#   4. Iterate one layer ahead
+#   5. repeat above steps until reaching the last layer
+"""
 class DMFNet:
 
+    ############# PARAM #############
     g_w = 0.8
     rho = 0.1
     sigma_b = 0.1
-
-    def __init__(self, struct,kernel_size,phi = np.tanh,input_size = 30, weight = None):
+    ############# PARAM #############
+    
+    def __init__(self, struct,kernel_size,phi = np.tanh,input_size = 30, weight = None, detailed_info = False):
         self.struct = struct
         self.kernel_size = kernel_size
         self.layer_len = len(struct)
         self.currentLayerIdx = 0
         self.phi = phi
+        self.detailed_info = detailed_info
         # General weight formulation: weight[layer idx][Cout][Cin] is a list containing the kernel size matrix (has only one element)
         # layer idx >= 1
         if weight == None:
@@ -51,8 +63,17 @@ class DMFNet:
         # initial bias
         self.bias = ['0']
         self.InitialBias()
-        self.dimList = []
-        
+        self.dimList = []   # store the dimensionality per feature map
+        self.dimBigMatrix = []  # store the dimensionality of each layer's big matrix
+    
+    def PrintCorvarianceHeatMap(self, savePath = './RandomNet/HeatMap/'):
+        # save the heat map of big matrix   ||  called before updating the dimensionality
+        path = savePath + 'Layer' + str(self.currentLayerIdx) + '.jpg'
+        plt.figure()
+        plt.imshow(self.CBigMat)  
+        plt.colorbar()
+        plt.savefig(path) 
+
     def InitialWeight(self):
         # lidx: layer index     cidx:   channel idx
         for n in range(self.layer_len - 1):
@@ -66,6 +87,8 @@ class DMFNet:
     def InitialBias(self):
         for n in range(1,self.layer_len):
             self.bias.append(np.sqrt(DMFNet.sigma_b)*np.random.randn(self.struct[n],1))
+        if self.detailed_info:
+            print('Bias initialization complete')
     
     def InitialMeanActivation(self,input_size = 30):
         # a list of length input_size*input_size and each element is a column vector of size [input_size,1]
@@ -73,6 +96,8 @@ class DMFNet:
         h_mean_alpha = np.zeros([self.struct[0],1])
         for i in range(input_size*input_size):
             self.h_mean.append(h_mean_alpha)
+        if self.detailed_info:
+            print('Mean activation complete')
 
     def InitialInputCorvarianceTensor(self,rho,input_size = 30):
         # Big matrix 
@@ -93,12 +118,18 @@ class DMFNet:
         # transfer it to 4D tensor format
         self.CTensor = np.zeros([alphaN,alphaN,input_channel_size,input_channel_size])
         for a in range(alphaN):
+            if self.detailed_info:
+                alphaNfifth = int(alphaN/5)
+                if a%alphaNfifth == 0:
+                    print('Corvariance Tensor assembly process: {:.0f}%'.format(100*a/alphaN))
             for a_ in range(alphaN):
                 for i in range(input_channel_size):
                     for j in range(input_channel_size):
                         idx_i = i*alphaN + a
                         idx_j = j*alphaN + a_
                         self.CTensor[a][a_][i][j] = C[idx_i][idx_j]
+        if self.detailed_info:
+            print('Corvariance Tensor assembly complete')
 
     def UpdateDeltaTensor(self):
         Cl = self.struct[self.currentLayerIdx]
@@ -125,6 +156,8 @@ class DMFNet:
         return self.phi(A*x+B+C)*self.phi(A_*x+B_+C_)
     """
     def IterateOneLayer(self):
+        if self.detailed_info:
+            print('Current layer:   {}'.format(self.currentLayerIdx))
         # 前进一层
         current_size = int(np.sqrt(self.CTensor.shape[0]))
         layer_next_size = current_size - self.kernel_size + 1
@@ -134,7 +167,7 @@ class DMFNet:
         self.CTensorNext = np.zeros([layer_next_size2,layer_next_size2,Cout,Cout])
         self.h_mean_next = []
         for i in range(layer_next_size2):
-            h_mean_next.append(np.zeros([self.struct[self.currentLayerIdx+1],1]))
+            self.h_mean_next.append(np.zeros([self.struct[self.currentLayerIdx+1],1]))
         # 将alpha 拆成2D alphai alphaj二维坐标
         # first 4 loops for feature map's positions of layer l+1
         for alphai in range(layer_next_size):
@@ -175,7 +208,7 @@ class DMFNet:
                                 A = (self.phi(np.sqrt(self.Delta[alpha][alpha][i][i])*x + tmp + self.bias[self.currentLayerIdx+1][i][0])*self.phi(np.sqrt(self.Delta[alpha_][alpha_][j][j])*(PHI*x+np.sqrt(1-PHI*PHI)*y) + tmp_ + self.bias[self.currentLayerIdx+1][j][0])).sum()/20000
                                 B = self.h_mean_next[alpha][i][0]*self.h_mean_next[alpha_][j][0]
                                 self.CTensorNext[alpha][alpha_][i][j] = A - B
-        self.currentLayerIdx = self,currentLayerIdx + 1
+        self.currentLayerIdx = self.currentLayerIdx + 1
         self.CTensor = self.CTensorNext.copy()
         self.h_mean = self.h_mean_next.copy()
     
@@ -188,11 +221,37 @@ class DMFNet:
         num_feature_map = self.CTensor.shape[0]
         dimPerLayer = []
         for c in range(num_current_channel):
-            CMat = self.CTensor[c*num_feature_map:(c+1)*num_feature_map,c*num_feature_map:(c+1)*num_feature_map,c,c]
+            CMat = self.CTensor[:,:,c,c]
             Ctrace = np.trace(CMat)
             dim = Ctrace*Ctrace/np.trace(np.dot(CMat,CMat))/num_feature_map
             dimPerLayer.append(dim)
         self.dimList.append(dimPerLayer)
+        # dimensionality of Big Matrix
+        big_matrix_edge = num_current_channel*num_feature_map
+        self.CBigMat = np.zeros([big_matrix_edge,big_matrix_edge])
+        for i in range(num_current_channel):
+            for j in range(num_current_channel):
+                for alpha in range(num_feature_map):
+                    for alpha_ in range(num_feature_map):
+                        I = i*num_feature_map + alpha
+                        J = j*num_feature_map + alpha_
+                        self.CBigMat[I][J] = self.CTensor[alpha][alpha_][i][j]
+        Ctrace = np.trace(self.CBigMat)
+        dim = Ctrace*Ctrace/np.trace(np.dot(self.CBigMat,self.CBigMat))/big_matrix_edge
+        self.dimBigMatrix.append(dim)
+    
+    # print out dimensionality information layer by layer
+    def PrintDimInfo(self):
+        print('Block matrix dimensionality:')
+        for l in range(self.layer_len):
+            print('Layer {}'.format(l))
+            for c in range(self.struct[l]):
+                print('Channel {0} has dimensionality {1} '.format(c,self.dimList[l][c]))
+        print('Big Matrix dimensionality:')
+        for l in range(self.layer_len):
+            print('Layer {0} has total dimensionality {1}'.format(l,self.dimBigMatrix[l]))
+
+
     
 
             
