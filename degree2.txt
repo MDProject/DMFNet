@@ -1,0 +1,44 @@
+¡¾1¡¿
+net_struct = [3,4,4]
+net = DMFNet(net_struct,2,input_size = 9,detailed_info = True)
+
+Layer 0
+Channel 0 has dimensionality 0.9782635474408239
+Channel 1 has dimensionality 0.9781328829361039
+Channel 2 has dimensionality 0.9785413039661277
+Layer 1
+Channel 0 has dimensionality 0.9481800900219219
+Channel 1 has dimensionality 0.7888123870727611
+Channel 2 has dimensionality 0.8337461375426921
+Channel 3 has dimensionality 0.7346896240023819
+Layer 2
+Channel 0 has dimensionality 0.7792342387213873
+Channel 1 has dimensionality 0.6371498793546957
+Channel 2 has dimensionality 0.7980848421183679
+Channel 3 has dimensionality 0.7910276176043293
+Big Matrix dimensionality:
+Layer 0 has total dimensionality 0.9372311154746832
+Layer 1 has total dimensionality 0.49931371450042233
+Layer 2 has total dimensionality 0.4246084530080286
+
+¡¾2¡¿
+net_struct = [3,4,4]
+net = DMFNet(net_struct,5,input_size = 20,detailed_info = True)
+Layer 0
+Channel 0 has dimensionality 0.9825731176596271
+Channel 1 has dimensionality 0.9825882536575137
+Channel 2 has dimensionality 0.9824957509416676
+Layer 1
+Channel 0 has dimensionality 0.812833894333637
+Channel 1 has dimensionality 0.8051258505682911
+Channel 2 has dimensionality 0.7986729275932504
+Channel 3 has dimensionality 0.747063543046404
+Layer 2
+Channel 0 has dimensionality 0.7518645565411001
+Channel 1 has dimensionality 0.7327705492632939
+Channel 2 has dimensionality 0.7476537066145326
+Channel 3 has dimensionality 0.7534100582360763
+Big Matrix dimensionality:
+Layer 0 has total dimensionality 0.9493769662457842
+Layer 1 has total dimensionality 0.48567869967115623
+Layer 2 has total dimensionality 0.3771141274990362
