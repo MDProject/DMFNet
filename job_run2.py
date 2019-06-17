@@ -1,8 +1,8 @@
 from DynamicMeanField import *
 
 # initialize random network
-net_struct = [3,3]
-net = DMFNet(net_struct,3,input_size = 6,detailed_info = True)
+net_struct = [3,4,4]
+net = DMFNet(net_struct,5,input_size = 20,detailed_info = True)
 lengthOfLayers = len(net_struct)
 
 # feed forward [lengthOfLayers-1] steps

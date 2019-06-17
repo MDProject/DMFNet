@@ -171,9 +171,12 @@ class DMFNet:
         # 将alpha 拆成2D alphai alphaj二维坐标
         # first 4 loops for feature map's positions of layer l+1
         for alphai in range(layer_next_size):
+            if self.detailed_info:
+                layer_next_sizefifth = int(layer_next_size/5)
+                if alphai%layer_next_sizefifth == 0:
+                    print('Iterating process: {:.0f}%'.format(100*alphai/layer_next_size))
             for alphaj in range(layer_next_size):
                 # update mean h at position alpha
-                # 
                 alpha = alphai*layer_next_size + alphaj
                 for i in range(Cout):
                     x = np.random.randn(1,20000)
@@ -186,6 +189,9 @@ class DMFNet:
                             tmp += np.dot(self.weight_inner[self.currentLayerIdx+1][m][n][0],self.h_mean[(alphai+m)*current_size+(alphaj+n)])[i][0]
                     Phi1 = self.phi(np.sqrt(self.Delta[alpha][alpha][i][i])*x + tmp + self.bias[self.currentLayerIdx+1][i][0])
                     self.h_mean_next[alpha][i][0] = Phi1.sum()/20000
+        for alphai in range(layer_next_size):
+            for alphaj in range(layer_next_size):
+                alpha = alphai*layer_next_size + alphaj
                 # calculate corvariance matrix C(alpha,alpha',i,j) 
                 # 将alpha' 拆成2D alpha_i alpha_j二维坐标
                 for alpha_i in range(layer_next_size):
